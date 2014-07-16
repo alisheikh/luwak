@@ -12,6 +12,7 @@ import org.apache.lucene.search.intervals.IntervalCollector;
 import org.apache.lucene.search.intervals.IntervalIterator;
 import org.apache.lucene.util.BytesRef;
 import uk.co.flax.luwak.Monitor;
+import uk.co.flax.luwak.MonitorQueryCollector;
 
 /**
  * Copyright (c) 2014 Lemur Consulting Ltd.
@@ -28,7 +29,7 @@ import uk.co.flax.luwak.Monitor;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-public class PresearcherMatchCollector extends Monitor.MonitorQueryCollector implements IntervalCollector {
+public class PresearcherMatchCollector extends MonitorQueryCollector implements IntervalCollector {
 
     private IntervalIterator positions;
     private Document document;
@@ -86,5 +87,10 @@ public class PresearcherMatchCollector extends Monitor.MonitorQueryCollector imp
     @Override
     public void setSearchTime(long l) {
 
+    }
+
+    @Override
+    protected void finish() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

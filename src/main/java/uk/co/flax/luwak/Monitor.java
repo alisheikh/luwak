@@ -48,6 +48,7 @@ public class Monitor implements Closeable {
 
     private final MonitorQueryParser queryParser;
     private final Presearcher presearcher;
+    private final MonitorQueryCollectorFactory collectorFactory;
 
     private final Directory directory;
     private final IndexWriter writer;
@@ -75,12 +76,15 @@ public class Monitor implements Closeable {
     /**
      * Create a new Monitor instance, using a passed in Directory for its queryindex
      * @param queryParser the query parser to use
+     * @param collectorFactory collector factory to use
      * @param presearcher the presearcher to use
      * @param directory the directory where the queryindex is stored
      * @throws IOException
      */
-    public Monitor(MonitorQueryParser queryParser, Presearcher presearcher, Directory directory) throws IOException {
+    public Monitor(MonitorQueryParser queryParser, MonitorQueryCollectorFactory collectorFactory,
+            Presearcher presearcher, Directory directory) throws IOException {
         this.queryParser = queryParser;
+        this.collectorFactory = collectorFactory;
         this.presearcher = presearcher;
         this.directory = directory;
 
@@ -104,6 +108,19 @@ public class Monitor implements Closeable {
             }
         }, purgeFrequency, purgeFrequency, TimeUnit.SECONDS);
     }
+
+    /**
+     * Create a new Monitor instance, using a passed in Directory for its queryindex
+     *
+     * @param queryParser the query parser to use
+     * @param presearcher the presearcher to use
+     * @param directory the directory where the queryindex is stored
+     * @throws IOException
+     */
+    public Monitor(MonitorQueryParser queryParser, Presearcher presearcher, Directory directory) throws IOException {
+        this(queryParser, new MatchingCollectorFactory(), presearcher, directory);
+    }
+
 
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher) throws IOException {
         this(queryParser, presearcher, new RAMDirectory());
@@ -130,7 +147,7 @@ public class Monitor implements Closeable {
         }
     }
 
-    private static class CacheEntry {
+    public static class CacheEntry {
 
         public final MonitorQuery mq;
         public final Query matchQuery;
@@ -474,58 +491,15 @@ public class Monitor implements Closeable {
             doSearch(id.utf8ToString(), hash);
         }
 
-    }
-
-    /**
-     * A Collector that decodes the stored query for each document hit.
-     */
-    public static abstract class MonitorQueryCollector extends TimedCollector {
-
-        protected BinaryDocValues hashDV;
-        protected BinaryDocValues idDV;
-        protected AtomicReader reader;
-
-        final BytesRef hash = new BytesRef();
-        final BytesRef id = new BytesRef();
-
-        protected Map<BytesRef, CacheEntry> queries;
-
-        void setQueryMap(Map<BytesRef, CacheEntry> queries) {
-            this.queries = queries;
-        }
-
-        protected int queryCount = 0;
-        private long searchTime = -1;
-
         @Override
-        public void setScorer(Scorer scorer) throws IOException {
-
-        }
-
-        @Override
-        public final void setNextReader(AtomicReaderContext context) throws IOException {
-            this.reader = context.reader();
-            this.hashDV = context.reader().getBinaryDocValues(Monitor.FIELDS.hash);
-            this.idDV = context.reader().getBinaryDocValues(FIELDS.id);
-        }
-
-        @Override
-        public boolean acceptsDocsOutOfOrder() {
-            return true;
-        }
-
-        public int getQueryCount() {
-            return queryCount;
-        }
-
-        public long getSearchTime() {
-            return searchTime;
-        }
-
-        @Override
-        public void setSearchTime(long searchTime) {
-            this.searchTime = searchTime;
+        protected void finish() {
         }
     }
 
+    private static class MatchingCollectorFactory implements MonitorQueryCollectorFactory {
+        @Override
+        public MonitorQueryCollector get(Map<BytesRef, CacheEntry> queryCache, CandidateMatcher matcher) {
+          return new MatchingCollector(matcher);
+        }
+    }
 }
