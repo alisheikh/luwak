@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.lucene.index.StoredDocument;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.search.intervals.Interval;
@@ -31,7 +31,7 @@ import uk.co.flax.luwak.Monitor;
 public class PresearcherMatchCollector extends Monitor.MonitorQueryCollector implements IntervalCollector {
 
     private IntervalIterator positions;
-    private StoredDocument document;
+    private Document document;
     private String currentId;
 
     public final Map<String, StringBuilder> matchingTerms = new HashMap<>();

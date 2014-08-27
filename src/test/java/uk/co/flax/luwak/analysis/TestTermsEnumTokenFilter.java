@@ -1,6 +1,7 @@
 package uk.co.flax.luwak.analysis;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -58,6 +59,11 @@ public class TestTermsEnumTokenFilter {
                     return foo;
                 if (count-- > 0)
                     return bar;
+                return null;
+            }
+
+            @Override
+            public Comparator<BytesRef> getComparator() {
                 return null;
             }
         };

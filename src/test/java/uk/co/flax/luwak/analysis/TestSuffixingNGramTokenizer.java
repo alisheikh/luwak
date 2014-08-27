@@ -1,5 +1,6 @@
 package uk.co.flax.luwak.analysis;
 
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -9,6 +10,7 @@ import org.junit.Test;
 import uk.co.flax.luwak.Constants;
 
 import java.io.IOException;
+import java.io.Reader;
 
 import static uk.co.flax.luwak.util.TokenStreamAssert.assertThat;
 
@@ -32,8 +34,8 @@ public class TestSuffixingNGramTokenizer {
 
     Analyzer analyzer = new Analyzer() {
         @Override
-        protected TokenStreamComponents createComponents(String fieldName) {
-            Tokenizer source = new WhitespaceTokenizer(Constants.VERSION);
+        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+            Tokenizer source = new WhitespaceTokenizer(Constants.VERSION, reader);
             TokenStream sink = new SuffixingNGramTokenFilter(new KeywordRepeatFilter(source), "XX", "ANY", 10);
             return new TokenStreamComponents(source, sink);
         }
