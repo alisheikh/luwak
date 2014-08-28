@@ -62,7 +62,10 @@ public class ReportingWeightor extends TermWeightor {
 
         @Override
         public void reportSelection(List<TermWeightor.WeightedTermsList> terms, List<QueryTerm> selected) {
-            System.out.println("Selected: " + selected + "\n  from: " + terms);
+            System.out.println("Selected: " + selected + "\n  from: ");
+            for (WeightedTermsList qt : terms) {
+                System.out.println("\t\t" + qt);
+            }
         }
     }
 }
