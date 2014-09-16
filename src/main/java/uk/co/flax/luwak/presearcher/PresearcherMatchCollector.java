@@ -91,6 +91,5 @@ public class PresearcherMatchCollector extends MonitorQueryCollector implements 
 
     @Override
     protected void finish() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

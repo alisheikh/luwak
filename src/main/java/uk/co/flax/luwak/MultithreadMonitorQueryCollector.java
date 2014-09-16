@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 
 public class MultithreadMonitorQueryCollector extends Monitor.SearchingCollector {
@@ -17,15 +16,14 @@ public class MultithreadMonitorQueryCollector extends Monitor.SearchingCollector
 
     private ExecutorService executorService;
 
-    private final Map<BytesRef, Monitor.CacheEntry> queryCache;
     private final CandidateMatcher matcher;
-    private final List<Monitor.CacheEntry> queries;
+    private final List<Monitor.CacheEntry> temporaryQueries;
     private final List<Future<Object>> future = new LinkedList<>();
 
-    private MultithreadMonitorQueryCollector(Map<BytesRef, Monitor.CacheEntry> queryCache, CandidateMatcher matcher) {
-        this.queryCache = queryCache;
+    private MultithreadMonitorQueryCollector(Map<BytesRef, Monitor.CacheEntry> queries, CandidateMatcher matcher) {
+        this.queries = queries;
         this.matcher = matcher;
-        this.queries = new LinkedList<>();
+        this.temporaryQueries = new LinkedList<>();
     }
     
     private class MatchTask implements Callable<Object> {
@@ -54,9 +52,9 @@ public class MultithreadMonitorQueryCollector extends Monitor.SearchingCollector
     @Override
     protected void doSearch(String queryId, BytesRef hash) {
         try {
-            Monitor.CacheEntry entry = queryCache.get(hash);
-            synchronized (queries) {
-                queries.add(entry);
+            Monitor.CacheEntry entry = queries.get(hash);
+            synchronized (temporaryQueries) {
+                temporaryQueries.add(entry);
             }
         } catch (Exception e) {
             matcher.reportError(new MatchError(queryId, e));
@@ -66,10 +64,10 @@ public class MultithreadMonitorQueryCollector extends Monitor.SearchingCollector
     @Override
     protected void finish() {
         try {
-            if (queries.isEmpty()) {
+            if (temporaryQueries.isEmpty()) {
                 return;
             }
-            List<List<Monitor.CacheEntry>> queriesLists = Lists.partition(queries, PACKAGE_SIZE);
+            List<List<Monitor.CacheEntry>> queriesLists = Lists.partition(temporaryQueries, PACKAGE_SIZE);
             List<MatchTask> tasks = new LinkedList<>();
             for (List<Monitor.CacheEntry> queriesList : queriesLists) {
                 tasks.add(new MatchTask(matcher, queriesList));

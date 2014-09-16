@@ -432,6 +432,7 @@ public class Monitor implements Closeable {
             searcher = manager.acquire();
             collector.setQueryMap(this.queries);
             searcher.search(query, collector);
+            collector.finish();
         }
         finally {
             manager.release(searcher);
