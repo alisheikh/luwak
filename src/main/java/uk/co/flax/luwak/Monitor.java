@@ -362,7 +362,7 @@ public class Monitor implements Closeable {
         Query query = buildQuery(matcher.getDocument());
         matcher.setQueryBuildTime((System.nanoTime() - start) / 1000000);
 
-        MatchingCollector collector = new MatchingCollector(matcher);
+        MonitorQueryCollector collector = this.collectorFactory.get(purgeCache, matcher);
         match(query, collector);
         matcher.setQueriesRun(collector.getQueryCount());
 
