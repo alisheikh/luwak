@@ -39,7 +39,11 @@ public class ScoringMatcher extends CandidateMatcher<ScoringMatch> {
     @Override
     public ScoringMatch doMatch(String queryId, Query matchQuery, Query highlightQuery) throws IOException {
         ScoringMatch match = null;
+        long t = System.nanoTime();
         float score = score(matchQuery);
+        t = System.nanoTime() - t;
+        if (t > slowLogLimit)
+            slowlog.append(queryId).append(":").append(t).append(" ");
         if (score > 0)
             match = new ScoringMatch(queryId, score);
         return match;

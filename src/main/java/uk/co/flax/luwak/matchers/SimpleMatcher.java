@@ -36,6 +36,7 @@ public class SimpleMatcher extends CandidateMatcher<QueryMatch> {
 
     public QueryMatch doMatch(final String queryId, Query matchQuery, Query highlightQuery) throws IOException {
         final QueryMatch[] match = new QueryMatch[] { null };
+        long t = System.nanoTime();
         doc.getSearcher().search(matchQuery, new Collector() {
 
             @Override
@@ -58,6 +59,9 @@ public class SimpleMatcher extends CandidateMatcher<QueryMatch> {
                 return false;
             }
         });
+        t = System.nanoTime() - t;
+        if (t > slowLogLimit)
+            slowlog.append(queryId).append(":").append(t).append(" ");
         return match[0];
     }
 

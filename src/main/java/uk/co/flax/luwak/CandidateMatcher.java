@@ -5,8 +5,6 @@ import java.util.*;
 
 import org.apache.lucene.search.Query;
 
-import org.apache.lucene.search.Query;
-
 /**
  * Copyright (c) 2014 Lemur Consulting Ltd.
  * <p/>
@@ -37,6 +35,10 @@ public abstract class CandidateMatcher<T extends QueryMatch> implements Iterable
     private long queryBuildTime = -1;
     private long searchTime = -1;
     private int queriesRun = -1;
+
+    protected long slowLogLimit;
+
+    protected final StringBuilder slowlog = new StringBuilder();
 
     /**
      * Creates a new CandidateMatcher for the supplied InputDocument
@@ -152,6 +154,25 @@ public abstract class CandidateMatcher<T extends QueryMatch> implements Iterable
 
     void setQueriesRun(int queriesRun) {
         this.queriesRun = queriesRun;
+    }
+
+    /*
+     * Called by the Monitor
+     */
+    public void setSlowLogLimit(long t) {
+        this.slowLogLimit = t;
+    }
+
+    /**
+     * Return the slow log for this match run.
+     *
+     * The slow log contains a list of all queries that took longer than the slow log
+     * limit to run.
+     *
+     * @return the slow log
+     */
+    public String getSlowLog() {
+        return slowlog.toString();
     }
 
 }
