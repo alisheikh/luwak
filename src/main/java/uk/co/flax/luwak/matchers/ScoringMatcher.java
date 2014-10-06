@@ -43,7 +43,7 @@ public class ScoringMatcher extends CandidateMatcher<ScoringMatch> {
         float score = score(matchQuery);
         t = System.nanoTime() - t;
         if (t > slowLogLimit)
-            slowlog.append(queryId).append(":").append(t).append(" ");
+            slowlog.append(queryId).append(":").append(t / 1000000).append(" ");
         if (score > 0)
             match = new ScoringMatch(queryId, score);
         return match;

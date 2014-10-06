@@ -61,7 +61,7 @@ public class SimpleMatcher extends CandidateMatcher<QueryMatch> {
         });
         t = System.nanoTime() - t;
         if (t > slowLogLimit)
-            slowlog.append(queryId).append(":").append(t).append(" ");
+            slowlog.append(queryId).append(":").append(t/1000000).append(" ");
         return match[0];
     }
 
