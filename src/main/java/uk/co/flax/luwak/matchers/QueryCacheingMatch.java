@@ -1,10 +1,6 @@
 package uk.co.flax.luwak.matchers;
 
-import java.io.IOException;
-
-import org.apache.lucene.search.Scorer;
-import uk.co.flax.luwak.InputDocument;
-import uk.co.flax.luwak.MatcherFactory;
+import org.apache.lucene.search.Query;
 import uk.co.flax.luwak.QueryMatch;
 
 /**
@@ -22,22 +18,15 @@ import uk.co.flax.luwak.QueryMatch;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-public class SimpleMatcher extends CollectingMatcher<QueryMatch> {
 
-    public SimpleMatcher(InputDocument doc) {
-        super(doc);
+public class QueryCacheingMatch<T extends QueryMatch> extends QueryMatch {
+
+    public final Query query;
+    public final T wrappedMatch;
+
+    public QueryCacheingMatch(String queryId, Query query, T wrappedMatch) {
+        super(queryId);
+        this.query = query;
+        this.wrappedMatch = wrappedMatch;
     }
-
-    @Override
-    protected QueryMatch doMatch(String queryId, Scorer scorer) throws IOException {
-        return new QueryMatch(queryId);
-    }
-
-    public static final MatcherFactory<SimpleMatcher> FACTORY = new MatcherFactory<SimpleMatcher>() {
-        @Override
-        public SimpleMatcher createMatcher(InputDocument doc) {
-            return new SimpleMatcher(doc);
-        }
-    };
-
 }
