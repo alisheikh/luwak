@@ -2,10 +2,7 @@ package uk.co.flax.luwak;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -20,7 +17,10 @@ import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.*;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
@@ -49,6 +49,7 @@ public class Monitor implements Closeable {
     private final MonitorQueryParser queryParser;
     private final Presearcher presearcher;
     private final MonitorQueryCollectorFactory collectorFactory;
+    private final QueryDecomposer decomposer;
 
     private final Directory directory;
     private final IndexWriter writer;
@@ -68,6 +69,7 @@ public class Monitor implements Closeable {
 
     public static final class FIELDS {
         public static final String id = "_id";
+        public static final String del = "_del";
         public static final String hash = "_hash";
     }
 
@@ -81,14 +83,16 @@ public class Monitor implements Closeable {
      * @param collectorFactory collector factory to use
      * @param presearcher the presearcher to use
      * @param directory the directory where the queryindex is stored
+     * @param decomposer the QueryDecomposer to use
      * @throws IOException
      */
     public Monitor(MonitorQueryParser queryParser, MonitorQueryCollectorFactory collectorFactory,
-            Presearcher presearcher, Directory directory) throws IOException {
+            Presearcher presearcher, Directory directory, QueryDecomposer decomposer) throws IOException {
         this.queryParser = queryParser;
         this.collectorFactory = collectorFactory;
         this.presearcher = presearcher;
         this.directory = directory;
+        this.decomposer = decomposer;
 
         IndexWriterConfig iwc = new IndexWriterConfig(Constants.VERSION, new WhitespaceAnalyzer(Constants.VERSION));
         this.writer = new IndexWriter(directory, configureIndexWriterConfig(iwc));
@@ -120,12 +124,12 @@ public class Monitor implements Closeable {
      * @throws IOException
      */
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher, Directory directory) throws IOException {
-        this(queryParser, new MatchingCollectorFactory(), presearcher, directory);
+        this(queryParser, new MatchingCollectorFactory(), presearcher, directory, new QueryDecomposer());
     }
 
 
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher) throws IOException {
-        this(queryParser, presearcher, new RAMDirectory());
+        this(queryParser, new MatchingCollectorFactory(), presearcher, new RAMDirectory(), new QueryDecomposer());
     }
 
     /**
@@ -300,10 +304,11 @@ public class Monitor implements Closeable {
 
         for (MonitorQuery query : queries) {
             try {
-                CacheEntry cacheEntry = createCacheEntry(query);
-                updates.add(cacheEntry);
-                writer.updateDocument(new Term(Monitor.FIELDS.id, query.getId()),
-                        buildIndexableQuery(query.getId(), cacheEntry));
+                writer.deleteDocuments(new Term(FIELDS.del, query.getId()));
+                for (CacheEntry cacheEntry : decomposeQuery(query)) {
+                    updates.add(cacheEntry);
+                    writer.addDocument(buildIndexableQuery(query.getId(), cacheEntry));
+                }
             } catch (Exception e) {
                 errors.add(new QueryError(query.getId(), query.getQuery(), e.getMessage()));
             }
@@ -313,11 +318,23 @@ public class Monitor implements Closeable {
         return errors;
     }
 
-    private CacheEntry createCacheEntry(MonitorQuery query) throws Exception {
+    protected Iterable<CacheEntry> decomposeQuery(MonitorQuery query) throws Exception {
+
         Query q = queryParser.parse(query.getQuery(), query.getMetadata());
         Query hq = Strings.isNullOrEmpty(query.getHighlightQuery())
                 ? null : queryParser.parse(query.getHighlightQuery(), query.getMetadata());
-        return new CacheEntry(query, query.hash(), q, hq);
+
+        BytesRef rootHash = query.hash();
+
+        int upto = 0;
+        List<CacheEntry> cacheEntries = new LinkedList<>();
+        for (Query subquery : decomposer.decompose(q)) {
+            BytesRef subHash = BytesRef.deepCopyOf(rootHash);
+            subHash.append(new BytesRef("_" + upto++));
+            cacheEntries.add(new CacheEntry(query, subHash, subquery, hq));
+        }
+
+        return cacheEntries;
     }
 
     /**
@@ -337,7 +354,7 @@ public class Monitor implements Closeable {
      */
     public void delete(Iterable<MonitorQuery> queries) throws IOException {
         for (MonitorQuery mq : queries) {
-            writer.deleteDocuments(new Term(Monitor.FIELDS.id, mq.getId()));
+            writer.deleteDocuments(new Term(Monitor.FIELDS.del, mq.getId()));
         }
         commit(null);
     }
@@ -349,7 +366,7 @@ public class Monitor implements Closeable {
      */
     public void deleteById(Iterable<String> queryIds) throws IOException {
         for (String queryId : queryIds) {
-            writer.deleteDocuments(new Term(FIELDS.id, queryId));
+            writer.deleteDocuments(new Term(FIELDS.del, queryId));
         }
         commit(null);
     }
@@ -461,6 +478,7 @@ public class Monitor implements Closeable {
     protected Document buildIndexableQuery(String id, CacheEntry query) {
         Document doc = presearcher.indexQuery(query.matchQuery, query.mq.getMetadata());
         doc.add(new StringField(Monitor.FIELDS.id, id, Field.Store.NO));
+        doc.add(new StringField(Monitor.FIELDS.del, id, Field.Store.NO));
         doc.add(new BinaryDocValuesField(Monitor.FIELDS.id, new BytesRef(id)));
         doc.add(new BinaryDocValuesField(Monitor.FIELDS.hash, query.hash));
         return doc;

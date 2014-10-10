@@ -60,7 +60,7 @@ public abstract class CandidateMatcher<T extends QueryMatch> implements Iterable
     public final void matchQuery(String queryId, Query matchQuery, Query highlightQuery) throws IOException {
         T match = doMatch(queryId, matchQuery, highlightQuery);
         if (match != null)
-            matches.put(match.getQueryId(), match);
+            addMatch(match.getQueryId(), match);
     }
 
     /**
@@ -80,6 +80,14 @@ public abstract class CandidateMatcher<T extends QueryMatch> implements Iterable
      */
     public boolean matches(String queryId) {
         return matches.containsKey(queryId);
+    }
+
+    protected T getMatch(String queryId) {
+        return matches.get(queryId);
+    }
+
+    protected void addMatch(String queryId, T match) {
+        matches.put(queryId, match);
     }
 
     /**
