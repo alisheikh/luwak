@@ -132,6 +132,10 @@ public class Monitor implements Closeable {
         this(queryParser, new MatchingCollectorFactory(), presearcher, new RAMDirectory(), new QueryDecomposer());
     }
 
+    public Monitor(MonitorQueryParser queryParser, Presearcher presearcher, QueryDecomposer decomposer) throws IOException {
+        this(queryParser, new MatchingCollectorFactory(), presearcher, new RAMDirectory(), decomposer);
+    }
+
     /**
      * Statistics for the query cache and query index
      */
