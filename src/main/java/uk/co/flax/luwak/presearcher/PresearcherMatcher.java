@@ -1,9 +1,11 @@
 package uk.co.flax.luwak.presearcher;
 
-import java.util.Collection;
-import java.util.Iterator;
-
 import org.apache.lucene.search.Query;
+import uk.co.flax.luwak.InputDocument;
+import uk.co.flax.luwak.MatcherFactory;
+import uk.co.flax.luwak.QueryMatch;
+import uk.co.flax.luwak.matchers.DelegatingMatcher;
+import uk.co.flax.luwak.matchers.WrappedMatch;
 
 /**
  * Copyright (c) 2014 Lemur Consulting Ltd.
@@ -20,24 +22,14 @@ import org.apache.lucene.search.Query;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+public class PresearcherMatcher extends DelegatingMatcher<QueryMatch, WrappedMatch<QueryMatch>> {
 
-public class PresearcherMatches implements Iterable<PresearcherMatch> {
-
-    private final Query presearcherQuery;
-
-    private final Collection<PresearcherMatch> matches;
-
-    public PresearcherMatches(Query presearcherQuery, Collection<PresearcherMatch> matches) {
-        this.presearcherQuery = presearcherQuery;
-        this.matches = matches;
-    }
-
-    public Query getPresearcherQuery() {
-        return presearcherQuery;
+    public PresearcherMatcher(InputDocument doc, MatcherFactory<QueryMatch> factory) {
+        super(doc, factory);
     }
 
     @Override
-    public Iterator<PresearcherMatch> iterator() {
-        return matches.iterator();
+    protected WrappedMatch<QueryMatch> wrapMatch(QueryMatch match, String queryId, Query matchQuery, Query highlightQuery) {
+        return null;
     }
 }

@@ -16,13 +16,12 @@ import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.*;
-import org.apache.lucene.search.intervals.Interval;
-import org.apache.lucene.search.intervals.IntervalCollector;
-import org.apache.lucene.search.intervals.IntervalIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
+import uk.co.flax.luwak.matchers.SimpleMatcher;
+import uk.co.flax.luwak.presearcher.PresearcherMatchCollector;
 import uk.co.flax.luwak.presearcher.PresearcherMatches;
 import uk.co.flax.luwak.presearcher.TermsEnumFilter;
 
@@ -556,16 +555,14 @@ public class Monitor implements Closeable {
      * Match an InputDocument against the queries stored in the Monitor, also returning information
      * about which queries were selected by the presearcher, and why.
      * @param doc an InputDocument to match against the index
-     * @param factory a {@link MatcherFactory} to use to create a {@link CandidateMatcher} for the match run
-     * @param <T> the type of QueryMatch produced by the CandidateMatcher
      * @return a PresearcherMatches object
      * @throws IOException
      */
-    public <T extends QueryMatch> PresearcherMatches<T>
-            debug(InputDocument doc, MatcherFactory<T> factory) throws IOException {
-        PresearcherMatchCollector<T> collector = new PresearcherMatchCollector<>(factory.createMatcher(doc));
-        match(doc, collector);
-        return collector.getMatches();
+    public PresearcherMatches debug(InputDocument doc) throws IOException {
+        PresearcherMatchCollector collector = new PresearcherMatchCollector(new SimpleMatcher(doc));
+        Query query = buildQuery(doc);
+        match(query, collector);
+        return new PresearcherMatches(query, collector.getMatches());
     }
 
     protected Document buildIndexableQuery(String id, MonitorQuery mq, CacheEntry query) {
@@ -579,11 +576,11 @@ public class Monitor implements Closeable {
     }
 
     // For each query selected by the presearcher, pass on to a CandidateMatcher
-    private static class MatchingCollector<T extends QueryMatch> extends MonitorQueryCollector {
+    public static class MatchingCollector<T extends QueryMatch> extends MonitorQueryCollector {
 
         final CandidateMatcher<T> matcher;
 
-        private MatchingCollector(CandidateMatcher<T> matcher) {
+        public MatchingCollector(CandidateMatcher<T> matcher) {
             this.matcher = matcher;
         }
 
@@ -610,9 +607,9 @@ public class Monitor implements Closeable {
         protected BinaryDocValues mqDV;
         protected AtomicReader reader;
 
-        final BytesRef serializedMQ = new BytesRef();
-        final BytesRef hash = new BytesRef();
-        final BytesRef id = new BytesRef();
+        final protected BytesRef serializedMQ = new BytesRef();
+        final protected BytesRef hash = new BytesRef();
+        final protected BytesRef id = new BytesRef();
 
         protected Map<BytesRef, CacheEntry> queries;
 
@@ -652,70 +649,6 @@ public class Monitor implements Closeable {
 
         public int getQueryCount() {
             return queryCount;
-        }
-
-    }
-
-    private static class PresearcherMatchCollector<T extends QueryMatch>
-            extends MatchingCollector<T> implements IntervalCollector {
-
-        private IntervalIterator positions;
-        private StoredDocument document;
-        private String currentId;
-
-        public final Map<String, StringBuilder> matchingTerms = new HashMap<>();
-
-        private PresearcherMatchCollector(CandidateMatcher<T> matcher) {
-            super(matcher);
-        }
-
-        public PresearcherMatches<T> getMatches() {
-            return new PresearcherMatches<>(matchingTerms, matcher.getMatches());
-        }
-
-        @Override
-        protected void doMatch(int doc, String queryId, BytesRef hash) throws IOException {
-
-            currentId = queryId;
-            document = reader.document(doc);
-            positions.scorerAdvanced(doc);
-            while (positions.next() != null) {
-                positions.collect(this);
-            }
-
-            super.doMatch(doc, queryId, hash);
-        }
-
-        @Override
-        public void setScorer(Scorer scorer) throws IOException {
-            positions = scorer.intervals(true);
-        }
-
-        @Override
-        public Weight.PostingFeatures postingFeatures() {
-            return Weight.PostingFeatures.OFFSETS;
-        }
-
-        @Override
-        public boolean acceptsDocsOutOfOrder() {
-            return false;
-        }
-
-        @Override
-        public void collectLeafPosition(Scorer scorer, Interval interval, int docID) {
-            String terms = document.getField(interval.field).stringValue();
-            if (!matchingTerms.containsKey(currentId))
-                matchingTerms.put(currentId, new StringBuilder());
-            matchingTerms.get(currentId)
-                    .append(" ")
-                    .append(interval.field)
-                    .append(":")
-                    .append(terms.substring(interval.offsetBegin, interval.offsetEnd));
-        }
-
-        @Override
-        public void collectComposite(Scorer scorer, Interval interval, int docID) {
-
         }
 
     }
