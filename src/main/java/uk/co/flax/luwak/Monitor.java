@@ -37,6 +37,10 @@ import uk.co.flax.luwak.presearcher.TermsEnumFilter;
  * limitations under the License.
  */
 
+/**
+ * A Monitor contains a set of MonitorQuery objects, and runs them against
+ * passed-in InputDocuments.
+ */
 public class Monitor implements Closeable {
 
     private final MonitorQueryParser queryParser;
@@ -78,7 +82,7 @@ public class Monitor implements Closeable {
      * @param presearcher the presearcher to use
      * @param directory the directory where the queryindex is stored
      * @param decomposer the QueryDecomposer to use
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher,
                    Directory directory, QueryDecomposer decomposer) throws IOException {
@@ -114,7 +118,7 @@ public class Monitor implements Closeable {
      * Create a new Monitor instance, using a RAMDirectory and the default QueryDecomposer
      * @param queryParser the query parser to use
      * @param presearcher the presearcher to use
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher) throws IOException {
         this(queryParser, presearcher, new RAMDirectory(), new QueryDecomposer());
@@ -125,7 +129,7 @@ public class Monitor implements Closeable {
      * @param queryParser the query parser to use
      * @param presearcher the presearcher to use
      * @param directory the directory where the queryindex is stored
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public Monitor(MonitorQueryParser queryParser, Presearcher presearcher, Directory directory) throws IOException {
         this(queryParser, presearcher, directory, new QueryDecomposer());
@@ -216,7 +220,7 @@ public class Monitor implements Closeable {
      *
      * This is normally called from a background thread at a rate set by configurePurgeFrequency().
      *
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public synchronized void purgeCache() throws IOException {
 
@@ -315,7 +319,7 @@ public class Monitor implements Closeable {
      * @param queries the MonitorQueries to add
      * @param reporter an UpdateReporter to keep track of progress
      * @return a list of exceptions for queries that could not be added
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public List<QueryError> update(Iterable<MonitorQuery> queries, UpdateReporter reporter) throws IOException {
 
@@ -350,7 +354,7 @@ public class Monitor implements Closeable {
      * Add new queries to the monitor
      * @param queries the MonitorQueries to add
      * @return a list of exceptions for queries that could not be added
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public List<QueryError> update(Iterable<MonitorQuery> queries) throws IOException {
         return update(queries, new UpdateReporter() {
@@ -410,7 +414,7 @@ public class Monitor implements Closeable {
      * Add new queries to the monitor
      * @param queries the MonitorQueries to add
      * @return a list of exceptions for queries that could not be added
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public List<QueryError> update(MonitorQuery... queries) throws IOException {
         return update(Arrays.asList(queries));
@@ -419,7 +423,7 @@ public class Monitor implements Closeable {
     /**
      * Delete queries from the monitor
      * @param queries the queries to remove
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public void delete(Iterable<MonitorQuery> queries) throws IOException {
         for (MonitorQuery mq : queries) {
@@ -431,7 +435,7 @@ public class Monitor implements Closeable {
     /**
      * Delete queries from the monitor by ID
      * @param queryIds the IDs to delete
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public void deleteById(Iterable<String> queryIds) throws IOException {
         for (String queryId : queryIds) {
@@ -443,7 +447,7 @@ public class Monitor implements Closeable {
     /**
      * Delete queries from the monitor by ID
      * @param queryIds the IDs to delete
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public void deleteById(String... queryIds) throws IOException {
         deleteById(Arrays.asList(queryIds));
@@ -451,7 +455,7 @@ public class Monitor implements Closeable {
 
     /**
      * Delete all queries from the monitor
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public void clear() throws IOException {
         writer.deleteDocuments(new MatchAllDocsQuery());
@@ -471,7 +475,7 @@ public class Monitor implements Closeable {
      * @param factory a {@link MatcherFactory} to use to create a {@link CandidateMatcher} for the match run
      * @param <T> the type of {@link CandidateMatcher} to return
      * @return a {@link CandidateMatcher} summarizing the match run.
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public <T extends QueryMatch> Matches<T> match(InputDocument doc, MatcherFactory<T> factory) throws IOException {
         CandidateMatcher<T> matcher = factory.createMatcher(doc);
@@ -512,7 +516,7 @@ public class Monitor implements Closeable {
      * Get the MonitorQuery for a given query id
      * @param queryId the id of the query to get
      * @return the MonitorQuery stored for this id, or null if not found
-     * @throws IOException
+     * @throws IOException on IO errors
      */
     public MonitorQuery getQuery(String queryId) throws IOException {
         final MonitorQuery[] queryHolder = new MonitorQuery[]{ null };
@@ -535,6 +539,7 @@ public class Monitor implements Closeable {
 
     /**
      * @return the number of queries stored in this Monitor
+     * @throws java.io.IOException on IO errors
      */
     public int getQueryCount() throws IOException {
         final Set<String> ids = new HashSet<>();
