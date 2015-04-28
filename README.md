@@ -1,12 +1,8 @@
 Luwak - stored query engine from Flax
 =====================================
 
-This project depends on the Flax lucene-solr-intervals fork of Lucene/Solr.
-Before building, download lucene-solr-intervals from
-https://github.com/flaxsearch/lucene-solr-intervals and follow the maven build
-instructions.
-
-Once that's done, you can build and deploy Luwak by running mvn install.
+This branch of luwak runs on Apache Lucene 5.1, and lacks certain features that depend on the
+Flax fork of lucene.  The full-featured version can be found here: https://github.com/flaxsearch/luwak/tree/master
 
 You can find out a bit more about how Flax use Luwak for media monitoring applications in 
 this video from Lucene Revolution 2013 http://www.youtube.com/watch?v=rmRCsrJp2A8 and this video
@@ -50,11 +46,10 @@ Matching documents
 ------------------
 
 Queries selected by the monitor to run against an InputDocument are passed to a CandidateMatcher
-class.  Four basic implementations are provided:
+class.  Three basic implementations are provided:
 * SimpleMatcher - reports which queries matched the InputDocument
 * ScoringMatcher - reports which queries matched, with their scores
 * ExplainingMatcher - reports which queries matched, with an explanation for their scores
-* IntervalsMatcher - reports which queries matched, with the individual matches for each query
 
 In addition, luwak has two multithreaded matchers which wrap the simpler matchers:
 * ParallelMatcher - runs queries in multiple threads as they are collected from the Monitor
