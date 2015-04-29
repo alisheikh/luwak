@@ -622,7 +622,7 @@ public class Monitor implements Closeable {
 
         @Override
         public boolean needsScores() {
-            return true;
+            return false;
         }
 
         public int getQueryCount() {

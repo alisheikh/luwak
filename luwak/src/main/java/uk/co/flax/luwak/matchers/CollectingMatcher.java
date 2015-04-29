@@ -84,7 +84,7 @@ public abstract class CollectingMatcher<T extends QueryMatch> extends CandidateM
 
         @Override
         public boolean needsScores() {
-            return false;
+            return true;
         }
 
         public class MatchLeafCollector implements LeafCollector {
